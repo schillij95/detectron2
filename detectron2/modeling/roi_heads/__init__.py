@@ -12,6 +12,11 @@ from .mask_head import (
     BaseMaskRCNNHead,
     MaskRCNNConvUpsampleHead,
 )
+from .ripeness_head import (
+    ROI_RIPENESS_HEAD_REGISTRY,
+    build_roi_ripeness_head,
+    RipenessV1ConvXHead,
+)
 from .roi_heads import (
     ROI_HEADS_REGISTRY,
     ROIHeads,

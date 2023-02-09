@@ -41,15 +41,19 @@ from .roi_heads import (
     ROI_HEADS_REGISTRY,
     ROI_KEYPOINT_HEAD_REGISTRY,
     ROI_MASK_HEAD_REGISTRY,
+    ROI_RIPENESS_HEAD_REGISTRY,
     ROIHeads,
     StandardROIHeads,
     BaseMaskRCNNHead,
     BaseKeypointRCNNHead,
     FastRCNNOutputLayers,
+    RipenessV1ConvXHead,
     build_box_head,
     build_keypoint_head,
     build_mask_head,
     build_roi_heads,
+    build_roi_ripeness_head,
+
 )
 from .test_time_augmentation import DatasetMapperTTA, GeneralizedRCNNWithTTA
 from .mmdet_wrapper import MMDetBackbone, MMDetDetector

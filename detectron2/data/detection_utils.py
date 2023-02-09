@@ -409,6 +409,10 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
     classes = torch.tensor(classes, dtype=torch.int64)
     target.gt_classes = classes
 
+    ripeness = [float(obj["ripeness"]) for obj in annos]
+    ripeness = torch.tensor(ripeness, dtype=torch.float32)
+    target.gt_ripeness = ripeness
+    
     if len(annos) and "segmentation" in annos[0]:
         segms = [obj["segmentation"] for obj in annos]
         if mask_format == "polygon":
@@ -479,6 +483,10 @@ def annotations_to_instances_rotated(annos, image_size):
     classes = [obj["category_id"] for obj in annos]
     classes = torch.tensor(classes, dtype=torch.int64)
     target.gt_classes = classes
+
+    ripeness = [float(obj["ripeness"]) for obj in annos]
+    ripeness = torch.tensor(ripeness, dtype=torch.float32)
+    target.gt_ripeness = ripeness
 
     return target
 

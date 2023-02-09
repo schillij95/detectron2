@@ -19,8 +19,9 @@ MODEL:
     POST_NMS_TOPK_TRAIN: 1000
     POST_NMS_TOPK_TEST: 1000
   ROI_HEADS:
-    NAME: "StandardROIHeads"
+    NAME: "RipenessROIHeads"
     IN_FEATURES: ["p2", "p3", "p4", "p5"]
+    NUM_CLASSES: 1
   ROI_BOX_HEAD:
     NAME: "FastRCNNConvFCHead"
     NUM_FC: 2
@@ -29,6 +30,10 @@ MODEL:
     NAME: "MaskRCNNConvUpsampleHead"
     NUM_CONV: 4
     POOLER_RESOLUTION: 14
+#  ROI_RIPENESS_HEAD:
+#    NAME: "RipenessV1ConvXHead"
+#    POOLER_TYPE: "ROIAlign"
+#    NUM_COARSE_SEGM_CHANNELS: 2
 DATASETS:
   TRAIN: ("coco_2017_train",)
   TEST: ("coco_2017_val",)
