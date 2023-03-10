@@ -71,6 +71,12 @@ class HookBase:
         """
         pass
 
+    def after_backward(self):
+        """
+        Called after the backward pass of each iteration.
+        """
+        pass
+
     def after_step(self):
         """
         Called after each iteration.
@@ -175,6 +181,10 @@ class TrainerBase:
         for h in self._hooks:
             h.before_step()
 
+    def after_backward(self):
+        for h in self._hooks:
+            h.after_backward()
+
     def after_step(self):
         for h in self._hooks:
             h.after_step()
@@ -232,13 +242,15 @@ class SimpleTrainer(TrainerBase):
     or write your own training loop.
     """
 
-    def __init__(self, model, data_loader, optimizer):
+    def __init__(self, model, data_loader, optimizer, gather_metric_period=1):
         """
         Args:
             model: a torch Module. Takes a data from data_loader and returns a
                 dict of losses.
             data_loader: an iterable. Contains data to be used to call model.
             optimizer: a torch optimizer.
+            gather_metric_period: an int. Every gather_metric_period iterations
+                the metrics are gathered from all the ranks to rank 0 and logged.
         """
         super().__init__()
 
@@ -255,6 +267,7 @@ class SimpleTrainer(TrainerBase):
         # to access the data loader iterator, call `self._data_loader_iter`
         self._data_loader_iter_obj = None
         self.optimizer = optimizer
+        self.gather_metric_period = gather_metric_period
 
     def run_step(self):
         """
@@ -284,6 +297,8 @@ class SimpleTrainer(TrainerBase):
         """
         self.optimizer.zero_grad()
         losses.backward()
+
+        self.after_backward()
 
         self._write_metrics(loss_dict, data_time)
 
@@ -317,7 +332,8 @@ class SimpleTrainer(TrainerBase):
         data_time: float,
         prefix: str = "",
     ) -> None:
-        SimpleTrainer.write_metrics(loss_dict, data_time, prefix)
+        if (self.iter + 1) % self.gather_metric_period == 0:
+            SimpleTrainer.write_metrics(loss_dict, data_time, prefix)
 
     @staticmethod
     def write_metrics(
@@ -383,12 +399,13 @@ class AMPTrainer(SimpleTrainer):
         model,
         data_loader,
         optimizer,
+        gather_metric_period=1,
         grad_scaler=None,
         precision: torch.dtype = torch.float16,
     ):
         """
         Args:
-            model, data_loader, optimizer: same as in :class:`SimpleTrainer`.
+            model, data_loader, optimizer, gather_metric_period: same as in :class:`SimpleTrainer`.
             grad_scaler: torch GradScaler to automatically scale gradients.
             precision: torch.dtype as the target precision to cast to in computations
         """
@@ -397,7 +414,7 @@ class AMPTrainer(SimpleTrainer):
             assert not (model.device_ids and len(model.device_ids) > 1), unsupported
         assert not isinstance(model, DataParallel), unsupported
 
-        super().__init__(model, data_loader, optimizer)
+        super().__init__(model, data_loader, optimizer, gather_metric_period)
 
         if grad_scaler is None:
             from torch.cuda.amp import GradScaler
@@ -428,6 +445,8 @@ class AMPTrainer(SimpleTrainer):
 
         self.optimizer.zero_grad()
         self.grad_scaler.scale(losses).backward()
+
+        self.after_backward()
 
         self._write_metrics(loss_dict, data_time)
 
