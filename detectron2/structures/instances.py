@@ -107,7 +107,19 @@ class Instances:
         Modifying the returned dict will modify this instance.
         """
         return self._fields
-
+    
+    def get_indices(self, indices):
+        """
+        Returns:
+            Instances: all selected indices as Instances
+        """
+        #indices = np.array(indices)
+        print(f"Indices: {indices}")
+        ret = Instances(self._image_size)
+        for k, v in self._fields.items():
+            ret.set(k, v[indices])
+        return ret
+        
     # Tensor-like methods
     def to(self, *args: Any, **kwargs: Any) -> "Instances":
         """

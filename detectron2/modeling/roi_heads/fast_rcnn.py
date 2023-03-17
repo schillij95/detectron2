@@ -341,7 +341,7 @@ class FastRCNNOutputLayers(nn.Module):
         if self.use_sigmoid_ce:
             loss_cls = self.sigmoid_cross_entropy_loss(scores, gt_classes)
         else:
-            loss_cls = cross_entropy(scores, gt_classes, reduction="mean")
+            loss_cls = cross_entropy(scores, gt_classes, reduction="none") # Julian: changed from "mean" to "none"
 
         losses = {
             "loss_cls": loss_cls,
@@ -447,6 +447,7 @@ class FastRCNNOutputLayers(nn.Module):
             ...,
             self.box_reg_loss_type,
             self.smooth_l1_beta,
+            reduction="none"
         )
 
         # The reg loss is normalized using the total number of regions (R), not the number

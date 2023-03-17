@@ -217,6 +217,20 @@ class ROIHeads(torch.nn.Module):
         return sampled_idxs, gt_classes[sampled_idxs]
 
     @torch.no_grad()
+    def select_proposals_not_ripeness_only(
+        self, proposals: List[Instances]
+    ) -> List[Instances]:
+        proposals_for_ripeness = [proposal[proposal.gt_train_ripeness_only if proposal.has('gt_train_ripeness_only') else torch.zeros(len(proposal), dtype=torch.bool)] for proposal in proposals]
+        proposals_for_non_ripeness = [proposal[~(proposal.gt_train_ripeness_only if proposal.has('gt_train_ripeness_only') else torch.zeros(len(proposal), dtype=torch.bool))] for proposal in proposals]
+        
+        # select only proposals by gt_train_ripeness_only TODO mask bool -> indices for get_indices
+        #proposals_for_ripeness = [proposal.get_indices([b for a, b in zip(proposal.gt_train_ripeness_only.bool(), proposal) if a]) for proposal in proposals_with_gt]
+        #proposals_for_non_ripeness = [proposal.get_indices([b for a, b in zip(proposal.gt_train_ripeness_only.bool(), proposal) if not a]) for proposal in proposals_with_gt]
+        #print(f"proposals_for_ripeness: {len(proposals_for_ripeness[0])}, proposals_for_non_ripeness: {len(proposals_for_non_ripeness[0])}, all: {len(proposals[0])}")
+        return proposals_for_non_ripeness, proposals_for_ripeness
+        
+        
+    @torch.no_grad()
     def label_and_sample_proposals(
         self, proposals: List[Instances], targets: List[Instances]
     ) -> List[Instances]:
@@ -298,7 +312,7 @@ class ROIHeads(torch.nn.Module):
         storage = get_event_storage()
         storage.put_scalar("roi_head/num_fg_samples", np.mean(num_fg_samples))
         storage.put_scalar("roi_head/num_bg_samples", np.mean(num_bg_samples))
-
+        
         return proposals_with_gt
 
     def forward(
@@ -462,6 +476,7 @@ class Res5ROIHeads(ROIHeads):
         features: Dict[str, torch.Tensor],
         proposals: List[Instances],
         targets: Optional[List[Instances]] = None,
+        reduction='none'
     ):
         """
         See :meth:`ROIHeads.forward`.
@@ -733,16 +748,26 @@ class StandardROIHeads(ROIHeads):
         if self.training:
             assert targets, "'targets' argument is required during training"
             proposals = self.label_and_sample_proposals(proposals, targets)
+            proposals_non_ripeness, proposals_ripeness = self.select_proposals_not_ripeness_only(proposals)
+            #print(f"Proposals: {len(proposals)}, {proposals[0].gt_train_ripeness_only.shape} {proposals[0].gt_ripeness.shape} {proposals[0].gt_classes.shape} {len(proposals[0].gt_boxes)} {len(proposals[0].gt_masks)}")
+            #print(f"Proposals: {proposals[0].gt_ripeness.shape}, {proposals[0].gt_train_ripeness_only.shape}")
+            #print(f"Proposals: {proposals}")
+            #print(f"Proposals: {len(proposals)}, {proposals[0].gt_train_ripeness_only.shape} {proposals[0].gt_ripeness.shape} {proposals[0].gt_classes.shape} {proposals[0].gt_boxes} {proposals[0].gt_masks.shape}")
+            #gt_classes = torch.reshape(proposals[0].gt_ripeness, (4, 128))
+            
+            #print(f"Proposals: gt_ripeness: {proposals[0].gt_classes.unsqueeze(1)} {len(proposals)}")
         del targets
 
         if self.training:
-            losses = self._forward_box(features, proposals)
+            losses = self._forward_box(features, proposals_non_ripeness)
             # Usually the original proposals used by the box head are used by the mask, keypoint
             # heads. But when `self.train_on_pred_boxes is True`, proposals will contain boxes
             # predicted by the box head.
-            losses.update(self._forward_mask(features, proposals))
-            losses.update(self._forward_keypoint(features, proposals))
-            return proposals, losses
+            losses.update(self._forward_mask(features, proposals_non_ripeness))
+            losses.update(self._forward_keypoint(features, proposals_non_ripeness))
+            #select only losses where !gt_train_ripeness_only, v selecting only indixes where gt_train_ripeness_only is False
+            #print(f"loss_cls, {losses['loss_cls'].shape}, {losses['loss_cls']}")
+            return proposals_ripeness, losses
         else:
             pred_instances = self._forward_box(features, proposals)
             # During inference cascaded prediction is used: the mask and keypoints heads are only

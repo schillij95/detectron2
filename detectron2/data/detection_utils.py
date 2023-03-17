@@ -409,9 +409,13 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
     classes = torch.tensor(classes, dtype=torch.int64)
     target.gt_classes = classes
 
-    ripeness = [float(obj["ripeness"]) for obj in annos]
-    ripeness = torch.tensor(ripeness, dtype=torch.float32)
-    target.gt_ripeness = ripeness
+    if len(annos) and "ripeness" in annos[0]:
+        ripeness = [float(obj["ripeness"]) for obj in annos]
+        train_ripeness_only = [float(obj["train_ripeness_only"]) for obj in annos]
+        ripeness = torch.tensor(ripeness, dtype=torch.float32)
+        train_ripeness_only = torch.tensor(train_ripeness_only, dtype=torch.bool)
+        target.gt_ripeness = ripeness
+        target.gt_train_ripeness_only = train_ripeness_only
     
     if len(annos) and "segmentation" in annos[0]:
         segms = [obj["segmentation"] for obj in annos]
@@ -487,6 +491,10 @@ def annotations_to_instances_rotated(annos, image_size):
     ripeness = [float(obj["ripeness"]) for obj in annos]
     ripeness = torch.tensor(ripeness, dtype=torch.float32)
     target.gt_ripeness = ripeness
+    
+    train_ripeness_only = [float(obj["train_ripeness_only"]) for obj in annos]
+    train_ripeness_only = torch.tensor(train_ripeness_only, dtype=torch.float32)
+    target.gt_train_ripeness_only = train_ripeness_only
 
     return target
 

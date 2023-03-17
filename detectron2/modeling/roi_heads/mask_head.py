@@ -108,7 +108,7 @@ def mask_rcnn_loss(pred_mask_logits: torch.Tensor, instances: List[Instances], v
             vis_mask = torch.stack([vis_mask] * 3, axis=0)
             storage.put_image(name + f" ({idx})", vis_mask)
 
-    mask_loss = F.binary_cross_entropy_with_logits(pred_mask_logits, gt_masks, reduction="mean")
+    mask_loss = F.binary_cross_entropy_with_logits(pred_mask_logits, gt_masks, reduction='none') # Julian: old reduction was 'mean
     return mask_loss
 
 

@@ -315,6 +315,7 @@ def _dense_box_regression_loss(
     fg_mask: torch.Tensor,
     box_reg_loss_type="smooth_l1",
     smooth_l1_beta=0.0,
+    reduction="sum",
 ):
     """
     Compute loss for dense multi-level box regression.
@@ -341,28 +342,28 @@ def _dense_box_regression_loss(
             cat(pred_anchor_deltas, dim=1)[fg_mask],
             gt_anchor_deltas[fg_mask],
             beta=smooth_l1_beta,
-            reduction="sum",
+            reduction=reduction,
         )
     elif box_reg_loss_type == "giou":
         pred_boxes = [
             box2box_transform.apply_deltas(k, anchors) for k in cat(pred_anchor_deltas, dim=1)
         ]
         loss_box_reg = giou_loss(
-            torch.stack(pred_boxes)[fg_mask], torch.stack(gt_boxes)[fg_mask], reduction="sum"
+            torch.stack(pred_boxes)[fg_mask], torch.stack(gt_boxes)[fg_mask], reduction=reduction
         )
     elif box_reg_loss_type == "diou":
         pred_boxes = [
             box2box_transform.apply_deltas(k, anchors) for k in cat(pred_anchor_deltas, dim=1)
         ]
         loss_box_reg = diou_loss(
-            torch.stack(pred_boxes)[fg_mask], torch.stack(gt_boxes)[fg_mask], reduction="sum"
+            torch.stack(pred_boxes)[fg_mask], torch.stack(gt_boxes)[fg_mask], reduction=reduction
         )
     elif box_reg_loss_type == "ciou":
         pred_boxes = [
             box2box_transform.apply_deltas(k, anchors) for k in cat(pred_anchor_deltas, dim=1)
         ]
         loss_box_reg = ciou_loss(
-            torch.stack(pred_boxes)[fg_mask], torch.stack(gt_boxes)[fg_mask], reduction="sum"
+            torch.stack(pred_boxes)[fg_mask], torch.stack(gt_boxes)[fg_mask], reduction=reduction
         )
     else:
         raise ValueError(f"Invalid dense box regression loss type '{box_reg_loss_type}'")
