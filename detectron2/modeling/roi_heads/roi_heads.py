@@ -486,6 +486,8 @@ class Res5ROIHeads(ROIHeads):
         if self.training:
             assert targets
             proposals = self.label_and_sample_proposals(proposals, targets)
+            proposals_non_ripeness, proposals_ripeness = self.select_proposals_not_ripeness_only(proposals)
+            proposals = proposals_non_ripeness
         del targets
 
         proposal_boxes = [x.proposal_boxes for x in proposals]
